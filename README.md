@@ -21,7 +21,7 @@ src/appliance_admin/
     managers/system.py    exact service allowlist and reboot
   web/
     app.py                FastAPI routes
-    auth.py               replaceable web-auth integration seam
+    auth.py               signed admin JWT validation
   config.py
   ipc.py
   models.py
@@ -67,7 +67,7 @@ journalctl -u appliance-admin-daemon -f
 ls -l /run/appliance-admin/admin.sock
 ```
 
-The web bridge listens on `127.0.0.1:8088`. Put your normal authenticated application or same-host reverse proxy in front of it. Do not expose this example bridge directly to a LAN until `web/auth.py` has been replaced or integrated with your real session authentication.
+The web bridge listens on `127.0.0.1:8088`. Put your authenticated application or same-host reverse proxy in front of it and send a short-lived admin JWT in the `Authorization: Bearer` header.
 
 ## Authentication model
 
@@ -78,25 +78,25 @@ Authentication is deliberately separated into two decisions:
 
 The `audit_user` sent through IPC is logged for traceability, but the daemon never trusts it for authorization. A compromised unprivileged web process can invoke the daemon's small allowlist, but cannot expand that allowlist, inject shell arguments, or restart arbitrary units.
 
-The sample `require_admin()` dependency accepts `X-Authenticated-User` and `X-Authenticated-Role: admin` only over loopback. A reverse proxy must strip incoming copies and set them after validating a session. Replacing that dependency with your existing FastAPI session/JWT logic is preferable.
+The API validates HS256 JWT signatures, expiry, issuer, audience, subject, and the `admin` role server-side. Set `APPLIANCE_WEB_AUTH_SECRET` to at least 32 random characters and use the same secret in the trusted service that issues short-lived tokens. Identity headers are never trusted.
 
 ## Example calls
 
-These examples assume a trusted same-host proxy or local test:
+Set `TOKEN` to a valid short-lived admin JWT issued by your login service:
 
 ```bash
-curl -H 'X-Authenticated-User: trevor' -H 'X-Authenticated-Role: admin' \
+curl -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:8088/api/admin/network/status
 
-curl -H 'X-Authenticated-User: trevor' -H 'X-Authenticated-Role: admin' \
+curl -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:8088/api/admin/wifi/scan
 
 curl -X POST -H 'Content-Type: application/json' \
-  -H 'X-Authenticated-User: trevor' -H 'X-Authenticated-Role: admin' \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"ssid":"ShopWiFi","password":"replace-me"}' \
   http://127.0.0.1:8088/api/admin/wifi/connect
 
-curl -X POST -H 'X-Authenticated-User: trevor' -H 'X-Authenticated-Role: admin' \
+curl -X POST -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:8088/api/admin/services/ninja-timer.service/restart
 ```
 
