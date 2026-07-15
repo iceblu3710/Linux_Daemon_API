@@ -33,7 +33,11 @@ class IPCServer:
         path.parent.mkdir(mode=0o750, parents=True, exist_ok=True)
         if path.exists() or path.is_socket():
             path.unlink()
-        self.server = await asyncio.start_unix_server(self._handle_client, path=str(path))
+        self.server = await asyncio.start_unix_server(
+            self._handle_client,
+            path=str(path),
+            limit=self.settings.max_request_bytes,
+        )
         gid = grp.getgrnam(self.settings.socket_group).gr_gid
         os.chown(path, 0, gid)
         os.chmod(path, self.settings.socket_mode)
@@ -75,17 +79,24 @@ class IPCServer:
             return
         raise AuthorizationError(f"UID {uid} is not allowed")
 
+    async def _read_request_line(self, reader: asyncio.StreamReader) -> bytes:
+        try:
+            line = await asyncio.wait_for(
+                reader.readline(), timeout=self.settings.request_timeout_seconds
+            )
+        except ValueError as exc:
+            raise ValidationError("Malformed or oversized request") from exc
+        if not line or len(line) > self.settings.max_request_bytes or not line.endswith(b"\n"):
+            raise ValidationError("Malformed or oversized request")
+        return line
+
     async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         request_id = "unknown"
         pid = uid = gid = -1
         try:
             pid, uid, gid = self._peer_credentials(writer)
             self._authorize(uid)
-            line = await asyncio.wait_for(
-                reader.readline(), timeout=self.settings.request_timeout_seconds
-            )
-            if not line or len(line) > self.settings.max_request_bytes or not line.endswith(b"\n"):
-                raise ValidationError("Malformed or oversized request")
+            line = await self._read_request_line(reader)
             request = IPCRequest.model_validate_json(line)
             request_id = request.id
             handler = self.handlers.get(request.action)
