@@ -5,13 +5,14 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from appliance_admin.config import WebSettings
 from appliance_admin.ipc import DaemonClient, DaemonClientError
 from appliance_admin.models import NetworkStatus, ServiceActionRequest, ServiceStatus, WifiConnectRequest
-from appliance_admin.web.auth import WebUser, require_admin
+from appliance_admin.web.auth import WebUser, admin_dependency
 
 
 def create_app(settings: WebSettings | None = None) -> FastAPI:
     settings = settings or WebSettings()
     client = DaemonClient(settings.daemon_socket, settings.daemon_timeout_seconds)
     app = FastAPI(title="Appliance Admin API", version="0.1.0")
+    require_admin = admin_dependency(settings)
 
     async def invoke(action: str, params: dict, user: WebUser):
         try:

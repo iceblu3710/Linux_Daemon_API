@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Annotated
 
-from fastapi import Header, HTTPException, Request, status
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from appliance_admin.config import WebSettings
 
 
 @dataclass(frozen=True)
@@ -11,20 +16,39 @@ class WebUser:
     is_admin: bool
 
 
-async def require_admin(
-    request: Request,
-    x_authenticated_user: str | None = Header(default=None),
-    x_authenticated_role: str | None = Header(default=None),
-) -> WebUser:
-    """Integration seam for your real session/auth middleware.
+_bearer = HTTPBearer(auto_error=False)
 
-    The example accepts identity headers only from loopback, making it suitable behind a
-    same-host reverse proxy that strips and sets these headers. Replace this dependency with
-    your existing login/session check before exposing the API beyond localhost.
-    """
-    client = request.client.host if request.client else ""
-    if client not in {"127.0.0.1", "::1", "testclient"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Untrusted proxy")
-    if not x_authenticated_user or x_authenticated_role != "admin":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin login required")
-    return WebUser(username=x_authenticated_user[:128], is_admin=True)
+
+def admin_dependency(settings: WebSettings):
+    async def require_admin(
+        credentials: Annotated[
+            HTTPAuthorizationCredentials | None, Depends(_bearer)
+        ] = None,
+    ) -> WebUser:
+        if credentials is None or credentials.scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Admin login required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            claims = jwt.decode(
+                credentials.credentials,
+                settings.auth_secret.get_secret_value(),
+                algorithms=["HS256"],
+                issuer=settings.auth_issuer,
+                audience=settings.auth_audience,
+                options={"require": ["exp", "sub", "role"]},
+            )
+        except jwt.PyJWTError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired session",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+        username = claims.get("sub")
+        if not isinstance(username, str) or not username or claims.get("role") != "admin":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+        return WebUser(username=username[:128], is_admin=True)
+
+    return require_admin
