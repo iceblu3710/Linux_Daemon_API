@@ -1,0 +1,36 @@
+[Unit]
+Description=Appliance unprivileged FastAPI administration bridge
+After=network.target appliance-admin-daemon.service
+Requires=appliance-admin-daemon.service
+
+[Service]
+Type=simple
+User=appliance-web
+Group=appliance-web
+EnvironmentFile=-/etc/appliance-admin/web.env
+ExecStart=/opt/appliance-admin/venv/bin/appliance-admin-web
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
