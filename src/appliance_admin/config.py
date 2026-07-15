@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,4 +33,7 @@ class WebSettings(BaseSettings):
     bind_host: str = "127.0.0.1"
     bind_port: int = 8088
     trusted_proxy_headers: bool = False
+    auth_secret: SecretStr = Field(min_length=32)
+    auth_issuer: str = "appliance-admin"
+    auth_audience: str = "appliance-admin-api"
     log_level: str = "INFO"
