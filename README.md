@@ -67,6 +67,16 @@ The installer grants the existing `kiosk` user access to the daemon socket. Set
 sudo APPLIANCE_ADMIN_CLIENT_USER=ninja-timer ./scripts/install.sh
 ```
 
+If Wi-Fi is still managed by `/etc/network/interfaces`, migrate an existing
+NetworkManager profile before using the Wi-Fi API:
+
+```bash
+sudo ./scripts/migrate-wifi-to-networkmanager.sh wlp1s0 AC1750
+```
+
+The script backs up the interfaces file and restores it automatically if the
+NetworkManager connection fails to activate.
+
 Inspect it:
 
 ```bash
