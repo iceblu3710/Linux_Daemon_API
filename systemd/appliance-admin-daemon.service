@@ -12,6 +12,8 @@ ExecStart=/opt/appliance-admin/venv/bin/appliance-admin-daemon
 Restart=on-failure
 RestartSec=3
 UMask=0077
+RuntimeDirectory=appliance-admin
+RuntimeDirectoryMode=0750
 
 # Root is required for NetworkManager/systemd control, so hardening avoids capabilities
 # that would break those operations while still shrinking the process environment.
