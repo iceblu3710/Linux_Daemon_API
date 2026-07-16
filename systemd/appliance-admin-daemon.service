@@ -13,7 +13,7 @@ Restart=on-failure
 RestartSec=3
 UMask=0077
 RuntimeDirectory=appliance-admin
-RuntimeDirectoryMode=0750
+RuntimeDirectoryMode=0755
 
 # Root is required for NetworkManager/systemd control, so hardening avoids capabilities
 # that would break those operations while still shrinking the process environment.
