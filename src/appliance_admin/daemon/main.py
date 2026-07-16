@@ -23,6 +23,7 @@ async def run() -> None:
         "wifi.scan": network.scan,
         "wifi.connect": network.connect,
         "system.reboot": system.reboot,
+        "hostname.set": system.hostname_set,
         "service.status": system.service_status,
         "service.start": system.service_start,
         "service.stop": system.service_stop,

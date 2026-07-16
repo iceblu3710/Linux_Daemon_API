@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from appliance_admin.daemon.errors import ValidationError
 from appliance_admin.daemon.managers.system import SystemManager
@@ -19,3 +20,10 @@ def test_service_name_rejects_argument_injection():
     manager = SystemManager(["ninja-timer.service;reboot.service"])
     with pytest.raises(ValidationError):
         manager._validate_service("ninja-timer.service;reboot.service")
+
+
+@pytest.mark.asyncio
+async def test_hostname_rejects_argument_injection():
+    manager = SystemManager([])
+    with pytest.raises(PydanticValidationError):
+        await manager.hostname_set({"hostname": "timer; reboot"})

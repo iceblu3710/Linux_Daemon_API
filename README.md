@@ -38,6 +38,7 @@ tests/
 | `network.status` | Connectivity, active SSID, Ethernet carrier, addresses, gateway, DNS |
 | `wifi.scan` | Serialized and cached AP scan |
 | `wifi.connect` | Add and activate an open or WPA-PSK profile |
+| `hostname.set` | Set a validated single-label appliance hostname |
 | `service.status` | Read one allowlisted `.service` unit |
 | `service.start` | Start one allowlisted unit |
 | `service.stop` | Stop one allowlisted unit |
@@ -57,6 +58,13 @@ Review `config/daemon.env.example`, especially `APPLIANCE_ADMIN_ALLOWED_SERVICES
 
 ```bash
 sudo ./scripts/install.sh
+```
+
+The installer grants the existing `kiosk` user access to the daemon socket. Set
+`APPLIANCE_ADMIN_CLIENT_USER` when the appliance application runs as another user:
+
+```bash
+sudo APPLIANCE_ADMIN_CLIENT_USER=ninja-timer ./scripts/install.sh
 ```
 
 Inspect it:

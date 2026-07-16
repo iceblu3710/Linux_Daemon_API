@@ -9,10 +9,16 @@ fi
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 INSTALL_DIR=/opt/appliance-admin
 CONFIG_DIR=/etc/appliance-admin
+CLIENT_USER=${APPLIANCE_ADMIN_CLIENT_USER:-kiosk}
 
 getent group appliance-web >/dev/null || groupadd --system appliance-web
 id appliance-web >/dev/null 2>&1 || useradd --system --gid appliance-web \
   --home-dir /var/lib/appliance-web --create-home --shell /usr/sbin/nologin appliance-web
+if id "$CLIENT_USER" >/dev/null 2>&1; then
+  usermod -a -G appliance-web "$CLIENT_USER"
+else
+  echo "Warning: client user '$CLIENT_USER' does not exist; socket access was not granted." >&2
+fi
 
 install -d -m 0755 "$INSTALL_DIR" "$CONFIG_DIR"
 rsync -a --delete --exclude '.venv' --exclude '__pycache__' "$ROOT_DIR/" "$INSTALL_DIR/source/"
@@ -31,3 +37,4 @@ systemctl daemon-reload
 systemctl enable --now appliance-admin-daemon.service appliance-admin-web.service
 
 echo "Installed. Edit $CONFIG_DIR/daemon.env to set the exact service allowlist."
+echo "Restart services for new group membership to take effect for '$CLIENT_USER'."

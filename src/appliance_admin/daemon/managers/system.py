@@ -4,7 +4,7 @@ import asyncio
 import re
 
 from appliance_admin.daemon.errors import NotFoundError, ValidationError
-from appliance_admin.models import ServiceActionRequest, ServiceStatus
+from appliance_admin.models import HostnameSetRequest, ServiceActionRequest, ServiceStatus
 
 _SERVICE_RE = re.compile(r"^[A-Za-z0-9_.@:-]+\.service$")
 
@@ -79,3 +79,28 @@ class SystemManager:
         # Return is normally lost as systemd begins shutdown. The API treats acceptance as success.
         await self._systemctl("reboot", timeout=5.0)
         return {"accepted": True}
+
+    async def hostname_set(self, params: dict) -> dict:
+        request = HostnameSetRequest.model_validate(params)
+        process = await asyncio.create_subprocess_exec(
+            "/usr/bin/hostnamectl",
+            "set-hostname",
+            request.hostname,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"},
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10.0)
+        except TimeoutError:
+            process.kill()
+            await process.wait()
+            raise
+        if process.returncode != 0:
+            message = stderr.decode(errors="replace").strip() or "hostnamectl failed"
+            raise ValidationError(message[:500])
+        return {
+            "hostname": request.hostname,
+            "accepted": True,
+            "output": stdout.decode(errors="replace").strip(),
+        }

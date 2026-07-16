@@ -63,6 +63,14 @@ class WifiConnectRequest(BaseModel):
     hidden: bool = False
 
 
+class HostnameSetRequest(BaseModel):
+    hostname: str = Field(
+        min_length=1,
+        max_length=63,
+        pattern=r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$",
+    )
+
+
 class ServiceActionRequest(BaseModel):
     service: str = Field(min_length=1, max_length=128)
 
