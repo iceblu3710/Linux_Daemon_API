@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import grp
-import json
 import logging
 import os
 import pwd
 import socket
 import struct
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError as PydanticValidationError
 
 from appliance_admin.config import DaemonSettings
-from appliance_admin.daemon.errors import AdminError, AuthorizationError, ValidationError
+from appliance_admin.daemon.errors import (
+    AdminError,
+    AuthorizationError,
+    ValidationError,
+)
 from appliance_admin.models import IPCError, IPCRequest, IPCResponse
 
 Handler = Callable[[dict[str, Any]], Awaitable[Any]]
@@ -63,7 +65,9 @@ class IPCServer:
         sock = writer.get_extra_info("socket")
         if sock is None:
             raise AuthorizationError("Peer socket unavailable")
-        raw = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
+        raw = sock.getsockopt(
+            socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")
+        )
         pid, uid, gid = struct.unpack("3i", raw)
         return pid, uid, gid
 
@@ -86,11 +90,17 @@ class IPCServer:
             )
         except ValueError as exc:
             raise ValidationError("Malformed or oversized request") from exc
-        if not line or len(line) > self.settings.max_request_bytes or not line.endswith(b"\n"):
+        if (
+            not line
+            or len(line) > self.settings.max_request_bytes
+            or not line.endswith(b"\n")
+        ):
             raise ValidationError("Malformed or oversized request")
         return line
 
-    async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    async def _handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         request_id = "unknown"
         pid = uid = gid = -1
         try:

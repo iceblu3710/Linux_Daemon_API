@@ -4,7 +4,11 @@ import asyncio
 import re
 
 from appliance_admin.daemon.errors import NotFoundError, ValidationError
-from appliance_admin.models import HostnameSetRequest, ServiceActionRequest, ServiceStatus
+from appliance_admin.models import (
+    HostnameSetRequest,
+    ServiceActionRequest,
+    ServiceStatus,
+)
 
 _SERVICE_RE = re.compile(r"^[A-Za-z0-9_.@:-]+\.service$")
 
@@ -33,7 +37,9 @@ class SystemManager:
             env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"},
         )
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=timeout
+            )
         except TimeoutError:
             process.kill()
             await process.wait()

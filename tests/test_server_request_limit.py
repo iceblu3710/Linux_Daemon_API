@@ -9,7 +9,7 @@ from appliance_admin.daemon.server import IPCServer
 
 def test_oversized_line_uses_validation_error_path():
     async def run_test():
-        settings = DaemonSettings(max_request_bytes=8)
+        settings = DaemonSettings(max_request_bytes=8, _env_file=None)
         server = IPCServer(settings, {})
         reader = asyncio.StreamReader(limit=settings.max_request_bytes)
         reader.feed_data(b"123456789\n")
@@ -23,7 +23,7 @@ def test_oversized_line_uses_validation_error_path():
 
 def test_request_at_limit_is_accepted():
     async def run_test():
-        settings = DaemonSettings(max_request_bytes=8)
+        settings = DaemonSettings(max_request_bytes=8, _env_file=None)
         server = IPCServer(settings, {})
         reader = asyncio.StreamReader(limit=settings.max_request_bytes)
         reader.feed_data(b"1234567\n")

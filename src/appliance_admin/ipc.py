@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +12,18 @@ class DaemonClientError(RuntimeError):
 
 
 class DaemonClient:
-    def __init__(self, socket_path: Path, timeout: float = 35.0, max_bytes: int = 65536):
+    def __init__(
+        self, socket_path: Path, timeout: float = 35.0, max_bytes: int = 65536
+    ):
         self.socket_path = socket_path
         self.timeout = timeout
         self.max_bytes = max_bytes
 
     async def call(
-        self, action: str, params: dict[str, Any] | None = None, audit_user: str | None = None
+        self,
+        action: str,
+        params: dict[str, Any] | None = None,
+        audit_user: str | None = None,
     ) -> Any:
         request = IPCRequest(action=action, params=params or {}, audit_user=audit_user)
         payload = request.model_dump_json().encode() + b"\n"
@@ -44,6 +48,8 @@ class DaemonClient:
         except (TimeoutError, OSError, ValueError) as exc:
             raise DaemonClientError(f"Daemon communication failed: {exc}") from exc
         if not response.ok:
-            message = response.error.message if response.error else "Unknown daemon error"
+            message = (
+                response.error.message if response.error else "Unknown daemon error"
+            )
             raise DaemonClientError(message)
         return response.result

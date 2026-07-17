@@ -4,7 +4,12 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 
 from appliance_admin.config import WebSettings
 from appliance_admin.ipc import DaemonClient, DaemonClientError
-from appliance_admin.models import NetworkStatus, ServiceActionRequest, ServiceStatus, WifiConnectRequest
+from appliance_admin.models import (
+    NetworkStatus,
+    ServiceActionRequest,
+    ServiceStatus,
+    WifiConnectRequest,
+)
 from appliance_admin.web.auth import WebUser, admin_dependency
 
 
@@ -37,7 +42,9 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         return await invoke("wifi.scan", {"force": force}, user)
 
     @app.post("/api/admin/wifi/connect", status_code=status.HTTP_202_ACCEPTED)
-    async def wifi_connect(body: WifiConnectRequest, user: WebUser = Depends(require_admin)):
+    async def wifi_connect(
+        body: WifiConnectRequest, user: WebUser = Depends(require_admin)
+    ):
         return await invoke("wifi.connect", body.model_dump(), user)
 
     @app.get("/api/admin/services/{service:path}", response_model=ServiceStatus)
@@ -45,7 +52,10 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         body = ServiceActionRequest(service=service)
         return await invoke("service.status", body.model_dump(), user)
 
-    @app.post("/api/admin/services/{service:path}/{action}", status_code=status.HTTP_202_ACCEPTED)
+    @app.post(
+        "/api/admin/services/{service:path}/{action}",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
     async def service_action(
         service: str, action: str, user: WebUser = Depends(require_admin)
     ):
