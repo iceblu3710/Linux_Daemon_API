@@ -47,8 +47,14 @@ def admin_dependency(settings: WebSettings):
                 headers={"WWW-Authenticate": "Bearer"},
             ) from exc
         username = claims.get("sub")
-        if not isinstance(username, str) or not username or claims.get("role") != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+        if (
+            not isinstance(username, str)
+            or not username
+            or claims.get("role") != "admin"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required"
+            )
         return WebUser(username=username[:128], is_admin=True)
 
     return require_admin

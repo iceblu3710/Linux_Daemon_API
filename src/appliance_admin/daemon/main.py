@@ -16,7 +16,9 @@ async def run() -> None:
         level=getattr(logging, settings.log_level.upper(), logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
-    network = NetworkManager(settings.scan_min_interval_seconds, settings.scan_cache_seconds)
+    network = NetworkManager(
+        settings.scan_min_interval_seconds, settings.scan_cache_seconds
+    )
     system = SystemManager(settings.allowed_services)
     handlers = {
         "network.status": network.status,

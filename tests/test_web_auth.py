@@ -9,12 +9,11 @@ from fastapi.security import HTTPAuthorizationCredentials
 from appliance_admin.config import WebSettings
 from appliance_admin.web.auth import admin_dependency
 
-
 SECRET = "test-secret-that-is-at-least-32-characters"
 
 
 def _settings() -> WebSettings:
-    return WebSettings(auth_secret=SECRET)
+    return WebSettings(auth_secret=SECRET, _env_file=None)
 
 
 def _token(**overrides) -> str:

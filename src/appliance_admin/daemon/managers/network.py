@@ -62,7 +62,9 @@ def _ipv4_u32(value: int) -> str:
 
 
 class NetworkManager:
-    def __init__(self, scan_min_interval: float = 12.0, scan_cache_seconds: float = 8.0):
+    def __init__(
+        self, scan_min_interval: float = 12.0, scan_cache_seconds: float = 8.0
+    ):
         self.scan_min_interval = scan_min_interval
         self.scan_cache_seconds = scan_cache_seconds
         self.bus: MessageBus | None = None
@@ -108,7 +110,9 @@ class NetworkManager:
         props = await self._properties(path, ACTIVE)
         return str(props["Id"].value)
 
-    async def _ip4_details(self, path: str) -> tuple[list[InterfaceAddress], str | None, list[str]]:
+    async def _ip4_details(
+        self, path: str
+    ) -> tuple[list[InterfaceAddress], str | None, list[str]]:
         if path == "/":
             return [], None, []
         props = await self._properties(path, IP4)
@@ -117,7 +121,11 @@ class NetworkManager:
             address_v = item.get("address")
             prefix_v = item.get("prefix")
             if address_v is not None and prefix_v is not None:
-                addresses.append(InterfaceAddress(address=str(address_v.value), prefix=int(prefix_v.value)))
+                addresses.append(
+                    InterfaceAddress(
+                        address=str(address_v.value), prefix=int(prefix_v.value)
+                    )
+                )
         gateway = str(props.get("Gateway", Variant("s", "")).value) or None
         dns_data = props.get("NameserverData", Variant("aa{sv}", [])).value
         dns: list[str] = []
@@ -139,7 +147,11 @@ class NetworkManager:
         for path in await self._device_paths():
             props = await self._properties(path, DEVICE)
             kind_num = int(props["DeviceType"].value)
-            kind = "wifi" if kind_num == DEVICE_TYPE_WIFI else "ethernet" if kind_num == DEVICE_TYPE_ETHERNET else "other"
+            kind = (
+                "wifi"
+                if kind_num == DEVICE_TYPE_WIFI
+                else "ethernet" if kind_num == DEVICE_TYPE_ETHERNET else "other"
+            )
             name = str(props["Interface"].value)
             state = DEVICE_STATE_NAMES.get(int(props["State"].value), "unknown")
             active_path = str(props["ActiveConnection"].value)
@@ -169,7 +181,9 @@ class NetworkManager:
                 )
             )
         return NetworkStatus(
-            connectivity=CONNECTIVITY_NAMES.get(int(nm_props["Connectivity"].value), "unknown"),
+            connectivity=CONNECTIVITY_NAMES.get(
+                int(nm_props["Connectivity"].value), "unknown"
+            ),
             primary_connection=primary_name,
             wifi_ssid=current_ssid,
             interfaces=interfaces,
@@ -177,7 +191,9 @@ class NetworkManager:
 
     async def _read_access_points(self, device_path: str) -> list[dict[str, Any]]:
         interfaces = await self._interfaces(device_path, (WIRELESS,))
-        active_path = str((await self._properties(device_path, WIRELESS))["ActiveAccessPoint"].value)
+        active_path = str(
+            (await self._properties(device_path, WIRELESS))["ActiveAccessPoint"].value
+        )
         paths = list(await interfaces[WIRELESS].call_get_all_access_points())
         by_ssid: dict[str, WifiAccessPoint] = {}
         for path in paths:
@@ -190,9 +206,15 @@ class NetworkManager:
             rsn = int(props["RsnFlags"].value)
             item = WifiAccessPoint(
                 ssid=ssid,
-                bssid=_mac(props["HwAddress"].value.encode() if isinstance(props["HwAddress"].value, str) else props["HwAddress"].value)
-                if not isinstance(props["HwAddress"].value, str)
-                else str(props["HwAddress"].value),
+                bssid=(
+                    _mac(
+                        props["HwAddress"].value.encode()
+                        if isinstance(props["HwAddress"].value, str)
+                        else props["HwAddress"].value
+                    )
+                    if not isinstance(props["HwAddress"].value, str)
+                    else str(props["HwAddress"].value)
+                ),
                 strength=int(props["Strength"].value),
                 frequency_mhz=int(props["Frequency"].value),
                 secured=bool(flags or wpa or rsn),
@@ -201,14 +223,21 @@ class NetworkManager:
             old = by_ssid.get(ssid)
             if old is None or item.strength > old.strength:
                 by_ssid[ssid] = item
-        return [x.model_dump() for x in sorted(by_ssid.values(), key=lambda x: x.strength, reverse=True)]
+        return [
+            x.model_dump()
+            for x in sorted(by_ssid.values(), key=lambda x: x.strength, reverse=True)
+        ]
 
     async def scan(self, params: dict) -> dict:
         force = bool(params.get("force", False))
         if set(params) - {"force"}:
             raise ValidationError("wifi.scan accepts only 'force'")
         now = time.monotonic()
-        if not force and self._scan_cache and now - self._last_scan_result < self.scan_cache_seconds:
+        if (
+            not force
+            and self._scan_cache
+            and now - self._last_scan_result < self.scan_cache_seconds
+        ):
             return {"cached": True, "access_points": self._scan_cache}
         async with self._scan_lock:
             now = time.monotonic()
@@ -251,9 +280,9 @@ class NetworkManager:
                 "psk": Variant("s", request.password),
             }
         nm = await self._interfaces(NM_PATH, (NM_IFACE,))
-        connection_path, active_path = await nm[NM_IFACE].call_add_and_activate_connection(
-            connection, device, "/"
-        )
+        connection_path, active_path = await nm[
+            NM_IFACE
+        ].call_add_and_activate_connection(connection, device, "/")
         return {
             "accepted": True,
             "ssid": request.ssid,

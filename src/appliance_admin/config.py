@@ -8,7 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class DaemonSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="APPLIANCE_ADMIN_", env_file="/etc/appliance-admin/daemon.env", extra="ignore"
+        env_prefix="APPLIANCE_ADMIN_",
+        env_file="/etc/appliance-admin/daemon.env",
+        extra="ignore",
     )
 
     socket_path: Path = Path("/run/appliance-admin/admin.sock")
@@ -25,7 +27,9 @@ class DaemonSettings(BaseSettings):
 
 class WebSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="APPLIANCE_WEB_", env_file="/etc/appliance-admin/web.env", extra="ignore"
+        env_prefix="APPLIANCE_WEB_",
+        env_file="/etc/appliance-admin/web.env",
+        extra="ignore",
     )
 
     daemon_socket: Path = Path("/run/appliance-admin/admin.sock")
