@@ -16,3 +16,11 @@ class NotFoundError(AdminError):
 
 class BusyError(AdminError):
     code = "busy"
+
+
+class NetworkBackendUnavailableError(AdminError):
+    code = "network_backend_unavailable"
+
+
+class NetworkActivationError(AdminError):
+    code = "network_activation_failed"

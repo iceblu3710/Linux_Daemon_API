@@ -20,6 +20,9 @@ class DaemonSettings(BaseSettings):
     allowed_services: list[str] = Field(default_factory=lambda: ["ninja-timer.service"])
     scan_min_interval_seconds: float = 12.0
     scan_cache_seconds: float = 8.0
+    wifi_interface: str = "wlp1s0"
+    network_checkpoint_timeout_seconds: int = 45
+    network_activation_timeout_seconds: float = 25.0
     request_timeout_seconds: float = 30.0
     max_request_bytes: int = 65536
     log_level: str = "INFO"

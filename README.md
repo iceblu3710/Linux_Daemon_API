@@ -37,7 +37,11 @@ tests/
 |---|---|
 | `network.status` | Connectivity, active SSID, Ethernet carrier, addresses, gateway, DNS |
 | `wifi.scan` | Serialized and cached AP scan |
-| `wifi.connect` | Add and activate an open or WPA-PSK profile |
+| `wifi.connect` | Checkpoint, add, activate, verify, and persist an open or WPA-PSK profile |
+| `wifi.disconnect` | Intentionally disconnect the managed Wi-Fi device |
+| `network.profiles` | List saved Ethernet/Wi-Fi profiles without secrets |
+| `network.profile.activate` | Activate a saved profile by UUID inside a rollback checkpoint |
+| `network.profile.delete` | Delete a saved profile by UUID |
 | `hostname.set` | Set a validated single-label appliance hostname |
 | `service.status` | Read one allowlisted `.service` unit |
 | `service.start` | Start one allowlisted unit |
@@ -68,14 +72,25 @@ sudo APPLIANCE_ADMIN_CLIENT_USER=ninja-timer ./scripts/install.sh
 ```
 
 If Wi-Fi is still managed by `/etc/network/interfaces`, migrate an existing
-NetworkManager profile before using the Wi-Fi API:
+NetworkManager profile before using the Wi-Fi API. This intentionally interrupts
+the active Wi-Fi connection, so run it at the local console or with a known-good
+Ethernet fallback:
 
 ```bash
 sudo ./scripts/migrate-wifi-to-networkmanager.sh wlp1s0 AC1750
 ```
 
 The script backs up the interfaces file and restores it automatically if the
-NetworkManager connection fails to activate.
+NetworkManager Wi-Fi connection fails to activate. It then gives NetworkManager
+exclusive ownership of non-loopback interfaces, configures NetworkManager's
+internal DHCP and resolver-file management, disables standalone `dhcpcd` and
+legacy `networking.service`, creates an always-autoconnect DHCP profile for every
+Ethernet adapter (reusing an existing profile bound to that adapter), and removes
+a mistaken `.local` suffix from the static
+hostname. Avahi appends `.local` when advertising the single-label hostname.
+
+The script refuses an SSH cutover by default. For a deliberately remote cutover
+with a tested fallback, explicitly set `APPLIANCE_ADMIN_ALLOW_REMOTE_CUTOVER=1`.
 
 Inspect it:
 
@@ -114,15 +129,33 @@ curl -X POST -H 'Content-Type: application/json' \
   -d '{"ssid":"ShopWiFi","password":"replace-me"}' \
   http://127.0.0.1:8088/api/admin/wifi/connect
 
+curl -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:8088/api/admin/network/profiles
+
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:8088/api/admin/services/ninja-timer.service/restart
 ```
 
 ## Wi-Fi behaviour
 
-`wifi.scan` returns a recent cache for rapid UI refreshes. A real D-Bus scan is requested no more often than `APPLIANCE_ADMIN_SCAN_MIN_INTERVAL_SECONDS`, and only one scan can run at once. Your UI can refresh frequently without machine-gunning the adapter.
+`wifi.scan` returns a recent cache for rapid UI refreshes. A real D-Bus scan is
+requested no more often than `APPLIANCE_ADMIN_SCAN_MIN_INTERVAL_SECONDS`, and
+only one scan can run at once. Scan completion follows NetworkManager's
+`LastScan` property-change event instead of a fixed sleep.
 
-For a polished UI, poll `network.status` at a modest interval such as 2 to 5 seconds, and request `wifi.scan` only while the Wi-Fi chooser is open. A later version can subscribe to NetworkManager property-change signals and push updates over your existing WebSocket.
+Connection changes create a 45-second NetworkManager checkpoint by default.
+The daemon waits on device/active-connection property events, verifies an IPv4
+address, gateway, DNS, and NetworkManager connectivity, then destroys the
+checkpoint. Failure rolls back immediately; daemon failure lets NetworkManager's
+checkpoint timeout restore the previous state. Configure the interface and
+timeouts with `APPLIANCE_ADMIN_WIFI_INTERFACE`,
+`APPLIANCE_ADMIN_NETWORK_CHECKPOINT_TIMEOUT_SECONDS`, and
+`APPLIANCE_ADMIN_NETWORK_ACTIVATION_TIMEOUT_SECONDS`.
+
+When NetworkManager is absent, the configured Wi-Fi interface is missing, or
+the device is unmanaged/unavailable, network operations return the typed
+`network_backend_unavailable` error. An empty access-point list therefore means
+that a healthy scan found no networks, not that the backend is broken.
 
 ## Important production notes
 
