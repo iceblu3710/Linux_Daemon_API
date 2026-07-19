@@ -33,8 +33,12 @@ python3 -m venv "$INSTALL_DIR/venv"
 
 install -m 0644 "$ROOT_DIR/systemd/appliance-admin-daemon.service" /etc/systemd/system/
 install -m 0644 "$ROOT_DIR/systemd/appliance-admin-web.service" /etc/systemd/system/
+install -m 0755 "$ROOT_DIR/scripts/publish-recovery-hostname.sh" \
+  /usr/local/libexec/appliance-publish-recovery-hostname
+install -m 0644 "$ROOT_DIR/systemd/appliance-recovery-hostname.service" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now appliance-admin-daemon.service appliance-admin-web.service
+systemctl enable --now appliance-admin-daemon.service appliance-admin-web.service \
+  appliance-recovery-hostname.service
 
 echo "Installed. Edit $CONFIG_DIR/daemon.env to set the exact service allowlist."
 echo "Restart services for new group membership to take effect for '$CLIENT_USER'."

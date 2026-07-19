@@ -55,7 +55,8 @@ Prerequisites:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-venv network-manager rsync
+sudo apt install python3 python3-venv network-manager avahi-daemon avahi-utils \
+  iproute2 rsync
 ```
 
 Review `config/daemon.env.example`, especially `APPLIANCE_ADMIN_ALLOWED_SERVICES`, then:
@@ -89,14 +90,22 @@ Ethernet adapter (reusing an existing profile bound to that adapter), and remove
 a mistaken `.local` suffix from the static
 hostname. Avahi appends `.local` when advertising the single-label hostname.
 
+The installation also enables `appliance-recovery-hostname.service`. It keeps
+the immutable recovery name from `APPLIANCE_RECOVERY_HOSTNAME` (configured as
+`43a9-9ed7`) published for every active IPv4 address when the user changes the
+system hostname. The publisher follows address changes and defers to Avahi's
+native hostname record whenever the system hostname equals the recovery name.
+
 The script refuses an SSH cutover by default. For a deliberately remote cutover
 with a tested fallback, explicitly set `APPLIANCE_ADMIN_ALLOW_REMOTE_CUTOVER=1`.
 
 Inspect it:
 
 ```bash
-systemctl status appliance-admin-daemon appliance-admin-web
+systemctl status appliance-admin-daemon appliance-admin-web \
+  appliance-recovery-hostname avahi-daemon
 journalctl -u appliance-admin-daemon -f
+avahi-resolve-host-name -4 43a9-9ed7.local
 ls -l /run/appliance-admin/admin.sock
 ```
 
