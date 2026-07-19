@@ -1,0 +1,33 @@
+[Unit]
+Description=Publish the appliance recovery mDNS hostname
+Requires=avahi-daemon.service
+After=avahi-daemon.service network.target
+
+[Service]
+Type=simple
+User=avahi
+Group=avahi
+Environment=APPLIANCE_RECOVERY_HOSTNAME=43a9-9ed7
+EnvironmentFile=-/etc/appliance-admin/daemon.env
+ExecStart=/usr/local/libexec/appliance-publish-recovery-hostname
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

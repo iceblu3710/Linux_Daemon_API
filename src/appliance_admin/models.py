@@ -28,6 +28,7 @@ class IPCResponse(BaseModel):
 class WifiAccessPoint(BaseModel):
     ssid: str
     bssid: str
+    bssids: list[str] = Field(default_factory=list)
     strength: int = Field(ge=0, le=100)
     frequency_mhz: int
     secured: bool
@@ -43,11 +44,21 @@ class NetworkInterface(BaseModel):
     name: str
     kind: Literal["wifi", "ethernet", "other"]
     state: str
+    state_reason: int | None = None
+    managed: bool
     carrier: bool | None = None
     active_connection: str | None = None
     ipv4: list[InterfaceAddress] = Field(default_factory=list)
     gateway4: str | None = None
     dns4: list[str] = Field(default_factory=list)
+    routes4: list["NetworkRoute"] = Field(default_factory=list)
+
+
+class NetworkRoute(BaseModel):
+    destination: str
+    prefix: int
+    next_hop: str | None = None
+    metric: int | None = None
 
 
 class NetworkStatus(BaseModel):
@@ -61,6 +72,16 @@ class WifiConnectRequest(BaseModel):
     ssid: str = Field(min_length=1, max_length=32)
     password: str | None = Field(default=None, min_length=8, max_length=63)
     hidden: bool = False
+
+
+class NetworkProfile(BaseModel):
+    id: str
+    uuid: str
+    type: str
+    interface_name: str | None = None
+    ssid: str | None = None
+    autoconnect: bool = False
+    active: bool = False
 
 
 class HostnameSetRequest(BaseModel):

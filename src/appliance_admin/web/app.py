@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 
 from appliance_admin.config import WebSettings
 from appliance_admin.ipc import DaemonClient, DaemonClientError
 from appliance_admin.models import (
     NetworkStatus,
+    NetworkProfile,
     ServiceActionRequest,
     ServiceStatus,
     WifiConnectRequest,
@@ -23,8 +26,18 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         try:
             return await client.call(action, params, audit_user=user.username)
         except DaemonClientError as exc:
+            unavailable = exc.code in {
+                "daemon_unavailable",
+                "network_backend_unavailable",
+                "timeout",
+            }
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+                status_code=(
+                    status.HTTP_503_SERVICE_UNAVAILABLE
+                    if unavailable
+                    else status.HTTP_400_BAD_REQUEST
+                ),
+                detail={"error": exc.code, "detail": str(exc)},
             ) from exc
 
     @app.get("/healthz")
@@ -46,6 +59,34 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         body: WifiConnectRequest, user: WebUser = Depends(require_admin)
     ):
         return await invoke("wifi.connect", body.model_dump(), user)
+
+    @app.post("/api/admin/wifi/disconnect", status_code=status.HTTP_202_ACCEPTED)
+    async def wifi_disconnect(user: WebUser = Depends(require_admin)):
+        return await invoke("wifi.disconnect", {}, user)
+
+    @app.get("/api/admin/network/profiles", response_model=list[NetworkProfile])
+    async def network_profiles(user: WebUser = Depends(require_admin)):
+        result = await invoke("network.profiles", {}, user)
+        return result["profiles"]
+
+    @app.post(
+        "/api/admin/network/profiles/{profile_uuid}/activate",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def activate_profile(
+        profile_uuid: UUID, user: WebUser = Depends(require_admin)
+    ):
+        return await invoke(
+            "network.profile.activate", {"uuid": str(profile_uuid)}, user
+        )
+
+    @app.delete("/api/admin/network/profiles/{profile_uuid}")
+    async def delete_profile(
+        profile_uuid: UUID, user: WebUser = Depends(require_admin)
+    ):
+        return await invoke(
+            "network.profile.delete", {"uuid": str(profile_uuid)}, user
+        )
 
     @app.get("/api/admin/services/{service:path}", response_model=ServiceStatus)
     async def service_status(service: str, user: WebUser = Depends(require_admin)):

@@ -27,3 +27,33 @@ async def test_hostname_rejects_argument_injection():
     manager = SystemManager([])
     with pytest.raises(PydanticValidationError):
         await manager.hostname_set({"hostname": "timer; reboot"})
+
+
+@pytest.mark.asyncio
+async def test_reboot_rejects_parameters(monkeypatch):
+    manager = SystemManager([])
+
+    async def fake_systemctl(*args, timeout=20.0):
+        return ""
+
+    monkeypatch.setattr(manager, "_systemctl", fake_systemctl)
+
+    with pytest.raises(ValidationError):
+        await manager.reboot({"now": True})
+
+
+@pytest.mark.asyncio
+async def test_reboot_queues_systemctl_reboot(monkeypatch):
+    manager = SystemManager([])
+    calls = []
+
+    async def fake_systemctl(*args, timeout=20.0):
+        calls.append((args, timeout))
+        return ""
+
+    monkeypatch.setattr(manager, "_systemctl", fake_systemctl)
+
+    result = await manager.reboot({})
+
+    assert result == {"accepted": True}
+    assert calls == [(("reboot",), 5.0)]

@@ -8,7 +8,9 @@ from appliance_admin.models import IPCRequest, IPCResponse
 
 
 class DaemonClientError(RuntimeError):
-    pass
+    def __init__(self, message: str, code: str = "daemon_unavailable"):
+        super().__init__(message)
+        self.code = code
 
 
 class DaemonClient:
@@ -51,5 +53,6 @@ class DaemonClient:
             message = (
                 response.error.message if response.error else "Unknown daemon error"
             )
-            raise DaemonClientError(message)
+            code = response.error.code if response.error else "daemon_error"
+            raise DaemonClientError(message, code=code)
         return response.result

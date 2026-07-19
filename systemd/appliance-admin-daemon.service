@@ -1,7 +1,7 @@
 [Unit]
 Description=Appliance privileged administration daemon
-After=network.target NetworkManager.service
-Wants=NetworkManager.service
+Requires=NetworkManager.service
+After=dbus.service NetworkManager.service
 
 [Service]
 Type=simple
