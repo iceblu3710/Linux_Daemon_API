@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RECOVERY_HOSTNAME=${APPLIANCE_RECOVERY_HOSTNAME:-43a9-9ed7}
+readonly RECOVERY_HOSTNAME=43a9-9ed7
 IP_BIN=${IP_BIN:-/usr/sbin/ip}
 HOSTNAME_BIN=${HOSTNAME_BIN:-/usr/bin/hostname}
 AVAHI_PUBLISH_BIN=${AVAHI_PUBLISH_BIN:-/usr/bin/avahi-publish-address}
 POLL_SECONDS=${POLL_SECONDS:-1}
 
 if [[ ! $RECOVERY_HOSTNAME =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; then
-  echo "Invalid APPLIANCE_RECOVERY_HOSTNAME: $RECOVERY_HOSTNAME" >&2
+  echo "Invalid immutable recovery hostname: $RECOVERY_HOSTNAME" >&2
   exit 2
 fi
 
-RECOVERY_HOSTNAME=${RECOVERY_HOSTNAME,,}
-RECOVERY_FQDN=${RECOVERY_HOSTNAME}.local
+readonly RECOVERY_FQDN=${RECOVERY_HOSTNAME}.local
 declare -A publishers=()
 
 stop_publisher() {

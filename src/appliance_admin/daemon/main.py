@@ -44,6 +44,7 @@ async def run() -> None:
         "network.profiles": network.profiles,
         "network.profile.activate": network.activate_profile,
         "network.profile.delete": network.delete_profile,
+        "system.capabilities": system.capabilities,
         "system.reboot": system.reboot,
         "hostname.set": system.hostname_set,
         "service.status": system.service_status,

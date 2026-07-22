@@ -7,8 +7,6 @@ After=avahi-daemon.service network.target
 Type=simple
 User=avahi
 Group=avahi
-Environment=APPLIANCE_RECOVERY_HOSTNAME=43a9-9ed7
-EnvironmentFile=-/etc/appliance-admin/daemon.env
 ExecStart=/usr/local/libexec/appliance-publish-recovery-hostname
 Restart=always
 RestartSec=2
