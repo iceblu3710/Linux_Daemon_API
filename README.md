@@ -42,7 +42,7 @@ tests/
 | `network.profiles` | List saved Ethernet/Wi-Fi profiles without secrets |
 | `network.profile.activate` | Activate a saved profile by UUID inside a rollback checkpoint |
 | `network.profile.delete` | Delete a saved profile by UUID |
-| `hostname.set` | Set a validated single-label appliance hostname |
+| `hostname.set` | Persist a validated single-label hostname and publish it live through Avahi |
 | `service.status` | Read one allowlisted `.service` unit |
 | `service.start` | Start one allowlisted unit |
 | `service.stop` | Stop one allowlisted unit |
@@ -95,6 +95,9 @@ the immutable recovery name from `APPLIANCE_RECOVERY_HOSTNAME` (configured as
 `43a9-9ed7`) published for every active IPv4 address when the user changes the
 system hostname. The publisher follows address changes and defers to Avahi's
 native hostname record whenever the system hostname equals the recovery name.
+The `hostname.set` action updates the running Avahi daemon in place, so the new
+user-facing `.local` name becomes available without restarting Avahi or the
+computer and without interrupting the immutable recovery-name publisher.
 
 The script refuses an SSH cutover by default. For a deliberately remote cutover
 with a tested fallback, explicitly set `APPLIANCE_ADMIN_ALLOW_REMOTE_CUTOVER=1`.

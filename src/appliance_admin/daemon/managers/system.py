@@ -27,10 +27,16 @@ class SystemManager:
         return service
 
     async def _systemctl(self, *args: str, timeout: float = 20.0) -> str:
-        process = await asyncio.create_subprocess_exec(
+        return await self._run_command(
             "/usr/bin/systemctl",
             "--no-pager",
             "--no-ask-password",
+            *args,
+            timeout=timeout,
+        )
+
+    async def _run_command(self, *args: str, timeout: float = 20.0) -> str:
+        process = await asyncio.create_subprocess_exec(
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -45,7 +51,8 @@ class SystemManager:
             await process.wait()
             raise
         if process.returncode != 0:
-            message = stderr.decode(errors="replace").strip() or "systemctl failed"
+            command = args[0].rsplit("/", 1)[-1] if args else "command"
+            message = stderr.decode(errors="replace").strip() or f"{command} failed"
             raise NotFoundError(message[:500])
         return stdout.decode(errors="replace").strip()
 
@@ -88,25 +95,35 @@ class SystemManager:
 
     async def hostname_set(self, params: dict) -> dict:
         request = HostnameSetRequest.model_validate(params)
-        process = await asyncio.create_subprocess_exec(
-            "/usr/bin/hostnamectl",
-            "set-hostname",
-            request.hostname,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"},
-        )
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10.0)
-        except TimeoutError:
-            process.kill()
-            await process.wait()
-            raise
-        if process.returncode != 0:
-            message = stderr.decode(errors="replace").strip() or "hostnamectl failed"
-            raise ValidationError(message[:500])
+            await self._run_command(
+                "/usr/bin/hostnamectl",
+                "set-hostname",
+                request.hostname,
+                timeout=10.0,
+            )
+        except (NotFoundError, TimeoutError) as exc:
+            raise ValidationError(f"Failed to set Linux hostname: {exc}") from exc
+
+        # hostnamectl updates both the live kernel hostname and /etc/hostname,
+        # but a running Avahi daemon keeps its own mDNS server name. Update it
+        # in place so the new .local name is announced without interrupting the
+        # independently published immutable recovery hostname.
+        try:
+            await self._run_command(
+                "/usr/bin/avahi-set-host-name",
+                request.hostname,
+                timeout=10.0,
+            )
+        except (NotFoundError, TimeoutError) as exc:
+            raise ValidationError(
+                "Linux hostname changed, but the mDNS hostname could not be updated: "
+                f"{exc}"
+            ) from exc
+
         return {
             "hostname": request.hostname,
+            "local_hostname": f"{request.hostname}.local",
+            "mdns_updated": True,
             "accepted": True,
-            "output": stdout.decode(errors="replace").strip(),
         }
