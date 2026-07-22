@@ -42,6 +42,7 @@ tests/
 | `network.profiles` | List saved Ethernet/Wi-Fi profiles without secrets |
 | `network.profile.activate` | Activate a saved profile by UUID inside a rollback checkpoint |
 | `network.profile.delete` | Delete a saved profile by UUID |
+| `system.capabilities` | Report live-hostname and immutable recovery-name support |
 | `hostname.set` | Persist a validated single-label hostname and publish it live through Avahi |
 | `service.status` | Read one allowlisted `.service` unit |
 | `service.start` | Start one allowlisted unit |
@@ -56,7 +57,7 @@ Prerequisites:
 ```bash
 sudo apt update
 sudo apt install python3 python3-venv network-manager avahi-daemon avahi-utils \
-  iproute2 rsync
+  hostname iproute2 rsync
 ```
 
 Review `config/daemon.env.example`, especially `APPLIANCE_ADMIN_ALLOWED_SERVICES`, then:
@@ -91,13 +92,17 @@ a mistaken `.local` suffix from the static
 hostname. Avahi appends `.local` when advertising the single-label hostname.
 
 The installation also enables `appliance-recovery-hostname.service`. It keeps
-the immutable recovery name from `APPLIANCE_RECOVERY_HOSTNAME` (configured as
-`43a9-9ed7`) published for every active IPv4 address when the user changes the
-system hostname. The publisher follows address changes and defers to Avahi's
-native hostname record whenever the system hostname equals the recovery name.
+the compiled-in immutable recovery name `43a9-9ed7.local` published for every
+active IPv4 address when the user changes the system hostname. Deployment
+environment files cannot override this identity. The publisher follows address
+changes and defers to Avahi's native hostname record whenever the system
+hostname equals the recovery name.
 The `hostname.set` action updates the running Avahi daemon in place, so the new
 user-facing `.local` name becomes available without restarting Avahi or the
 computer and without interrupting the immutable recovery-name publisher.
+It waits for Avahi to confirm the exact requested FQDN and restores both the
+Linux and Avahi hostnames if registration fails or a name collision causes
+Avahi to select an alternative.
 
 The script refuses an SSH cutover by default. For a deliberately remote cutover
 with a tested fallback, explicitly set `APPLIANCE_ADMIN_ALLOW_REMOTE_CUTOVER=1`.

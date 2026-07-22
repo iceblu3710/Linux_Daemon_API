@@ -11,6 +11,15 @@ INSTALL_DIR=/opt/appliance-admin
 CONFIG_DIR=/etc/appliance-admin
 CLIENT_USER=${APPLIANCE_ADMIN_CLIENT_USER:-kiosk}
 
+for required_executable in \
+  /usr/bin/hostname /usr/bin/hostnamectl /usr/bin/avahi-set-host-name /usr/bin/busctl; do
+  if [[ ! -x $required_executable ]]; then
+    echo "Missing required executable: $required_executable" >&2
+    echo "Install the systemd, hostname, avahi-daemon, and avahi-utils packages." >&2
+    exit 1
+  fi
+done
+
 getent group appliance-web >/dev/null || groupadd --system appliance-web
 id appliance-web >/dev/null 2>&1 || useradd --system --gid appliance-web \
   --home-dir /var/lib/appliance-web --create-home --shell /usr/sbin/nologin appliance-web
