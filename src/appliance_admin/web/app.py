@@ -109,6 +109,10 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     async def reboot(user: WebUser = Depends(require_admin)):
         return await invoke("system.reboot", {}, user)
 
+    @app.post("/api/admin/system/poweroff", status_code=status.HTTP_202_ACCEPTED)
+    async def poweroff(user: WebUser = Depends(require_admin)):
+        return await invoke("system.poweroff", {}, user)
+
     return app
 
 

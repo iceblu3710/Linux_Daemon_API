@@ -18,7 +18,7 @@ src/appliance_admin/
     main.py               root process entry point
     server.py             Unix socket, SO_PEERCRED, framing, audit log
     managers/network.py   NetworkManager D-Bus, scan cache, connect, status
-    managers/system.py    exact service allowlist and reboot
+    managers/system.py    exact service allowlist, reboot, and poweroff
   web/
     app.py                FastAPI routes
     auth.py               signed admin JWT validation
@@ -49,6 +49,7 @@ tests/
 | `service.stop` | Stop one allowlisted unit |
 | `service.restart` | Restart one allowlisted unit |
 | `system.reboot` | Reboot the appliance |
+| `system.poweroff` | Gracefully power off the appliance |
 
 ## Install on Debian/Ubuntu
 
