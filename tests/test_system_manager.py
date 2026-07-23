@@ -204,3 +204,33 @@ async def test_reboot_queues_systemctl_reboot(monkeypatch):
 
     assert result == {"accepted": True}
     assert calls == [(("reboot",), 5.0)]
+
+
+@pytest.mark.asyncio
+async def test_poweroff_rejects_parameters(monkeypatch):
+    manager = SystemManager([])
+
+    async def fake_systemctl(*args, timeout=20.0):
+        return ""
+
+    monkeypatch.setattr(manager, "_systemctl", fake_systemctl)
+
+    with pytest.raises(ValidationError):
+        await manager.poweroff({"now": True})
+
+
+@pytest.mark.asyncio
+async def test_poweroff_queues_systemctl_poweroff(monkeypatch):
+    manager = SystemManager([])
+    calls = []
+
+    async def fake_systemctl(*args, timeout=20.0):
+        calls.append((args, timeout))
+        return ""
+
+    monkeypatch.setattr(manager, "_systemctl", fake_systemctl)
+
+    result = await manager.poweroff({})
+
+    assert result == {"accepted": True}
+    assert calls == [(("poweroff",), 5.0)]

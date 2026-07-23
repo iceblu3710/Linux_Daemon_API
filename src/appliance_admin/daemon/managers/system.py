@@ -157,6 +157,13 @@ class SystemManager:
         await self._systemctl("reboot", timeout=5.0)
         return {"accepted": True}
 
+    async def poweroff(self, params: dict) -> dict:
+        if params:
+            raise ValidationError("Poweroff does not accept parameters")
+        # systemd performs an orderly service stop and filesystem unmount before poweroff.
+        await self._systemctl("poweroff", timeout=5.0)
+        return {"accepted": True}
+
     async def capabilities(self, params: dict) -> dict:
         if params:
             raise ValidationError("System capabilities do not accept parameters")
